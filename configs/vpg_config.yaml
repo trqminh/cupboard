@@ -4,6 +4,9 @@ lr: 1e-2
 hidden_size: 32
 n_epochs: 500
 batch_size: 5000
-device: cpu
 render: False
-validate: True
+device: cpu
+render: True
+trained_model_path: ./algorithms/vanilla_pg/trained_models/my_vanilla_pg.pth
+test: False
+

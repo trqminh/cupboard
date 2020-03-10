@@ -13,7 +13,15 @@ import os
 import numpy as np
 
 
-def train(env, hidden_size=32, lr=1e-2, n_epochs=500, batch_size=5000, device='cpu', render=False):
+def train(configs):
+    env = gym.make(configs['env'])
+    hidden_size = configs['hidden_size']
+    lr = float(configs['lr'])
+    n_epochs = configs['n_epochs']
+    batch_size = configs['batch_size']
+    device = configs['device']
+    render = configs['render']
+
     obs_dim = env.observation_space.shape[0]
     n_acts = env.action_space.n
 
@@ -38,7 +46,8 @@ def train(env, hidden_size=32, lr=1e-2, n_epochs=500, batch_size=5000, device='c
         ep_rews = []
 
         while True:
-            #env.render()
+            if render:
+                env.render()
 
             batch_obs.append(obs.copy())
 
@@ -90,16 +99,24 @@ def train(env, hidden_size=32, lr=1e-2, n_epochs=500, batch_size=5000, device='c
 
 
     policy.load_state_dict(best_policy_state_dict)
-    torch.save(policy.state_dict(), './trained_models/my_vanilla_pg.pth')
+    torch.save(policy.state_dict(), configs['trained_model_path'])
 
 
-def test(env, hidden_size=32, device='cpu', render=False):
+def test(configs):
+    if not os.path.isfile(configs['trained_model_path']):
+        print('There is no trained model to validate')
+        return None
+
+    env = gym.make(configs['env'])
+    hidden_size = configs['hidden_size']
+    device = configs['device']
+
     obs = env.reset()
     obs_dim = env.observation_space.shape[0]
     n_acts = env.action_space.n
 
     policy = mlp(obs_dim, n_acts, hidden_size).to(device)
-    policy.load_state_dict(torch.load('./trained_models/my_vanilla_pg.pth'))
+    policy.load_state_dict(torch.load(configs['trained_model_path']))
     policy.eval()
     while True:
         env.render()

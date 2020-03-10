@@ -16,15 +16,16 @@ def main():
     args = parse_args()
 
     config_path = args.config
-    config = yaml.load(open(config_path, 'r'), Loader=yaml.Loader)
-    
-    algo_name = config['algo']
-    module = importlib.import_module('algorithms.' + algo_name + '.my_' + algo_name)
-    env = gym.make(config['env'])
+    configs = yaml.load(open(config_path, 'r'), Loader=yaml.Loader)
 
-    if config['validate']:
-        module.test(env)
+    algo_name = configs['algo']
+    my_module = importlib.import_module('algorithms.' + algo_name + '.my_' + algo_name)
+    env = gym.make(configs['env'])
 
+    if configs['test']:
+        my_module.test(configs)
+    else:
+        my_module.train(configs)
 
 
 if __name__ == '__main__':
