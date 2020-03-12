@@ -35,9 +35,7 @@ def train(configs):
     n_acts = env.action_space.n
 
     policy = mlp(obs_dim, n_acts, hidden_size).to(device)
-    baseline_model = baseline(obs_dim, 1, hidden_size).to(device)
     optimizer = optim.Adam(policy.parameters(), lr=lr)
-    optimizer_mse = optim.Adam(baseline_model.parameters(), lr=lr)
     best_policy_state_dict = copy.deepcopy(policy.state_dict())
     best_mean_episode_ret = -1e6
 
@@ -96,20 +94,14 @@ def train(configs):
         batch_acts = torch.tensor(batch_acts).to(device)
         batch_weights = torch.tensor(batch_weights).to(device)
 
-        batch_baseline = baseline_model(batch_obs)
         batch_logits = policy(batch_obs)
         batch_m = Categorical(F.softmax(batch_logits, dim=1))
         batch_log_prob = batch_m.log_prob(batch_acts)
 
-        loss = torch.mean(-batch_log_prob * (batch_weights - batch_baseline))
-        mse = torch.mean((batch_weights - batch_baseline)**2)
+        loss = torch.mean(-batch_log_prob * batch_weights)
 
         loss.backward(retain_graph=True)
         optimizer.step()
-
-        mse = torch.mean((batch_weights - batch_baseline)**2)
-        mse.backward()
-        optimizer_mse.step()
 
         saver_mean_ep_rets.append(np.mean(batch_rets))
         saver_mean_ep_lens.append(np.mean(batch_lens))

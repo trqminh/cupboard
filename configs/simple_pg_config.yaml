@@ -1,4 +1,4 @@
-algo: vanilla_pg
+algo: simple_pg
 env: LunarLander-v2
 lr: 1e-2
 hidden_size: 32
@@ -6,6 +6,5 @@ n_epochs: 1000
 batch_size: 5000
 render: False
 device: cuda:0
-trained_model_path: ./algorithms/vanilla_pg/trained_models/my_vanilla_pg.pth
+trained_model_path: ./algorithms/simple_pg/trained_models/my_simple_pg.pth
 test: False
-
