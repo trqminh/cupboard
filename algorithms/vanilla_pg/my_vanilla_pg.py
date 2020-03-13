@@ -102,8 +102,6 @@ def train(configs):
         batch_log_prob = batch_m.log_prob(batch_acts)
 
         loss = torch.mean(-batch_log_prob * (batch_weights - batch_baseline))
-        mse = torch.mean((batch_weights - batch_baseline)**2)
-
         loss.backward(retain_graph=True)
         optimizer.step()
 

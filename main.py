@@ -17,6 +17,8 @@ def main():
 
     config_path = args.config
     configs = yaml.load(open(config_path, 'r'), Loader=yaml.Loader)
+    print('Configs: ')
+    print(configs)
 
     algo_name = configs['algo']
     my_module = importlib.import_module('algorithms.' + algo_name + '.my_' + algo_name)
