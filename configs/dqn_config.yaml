@@ -7,6 +7,7 @@ batch_size: 128
 render: False
 device: cuda:0
 discount_factor: 0.1
+reset_step: 500
 trained_model_path: ./algorithms/dqn/trained_models/my_dqn.pth
 test: False
 
