@@ -1,5 +1,5 @@
 algo: dqn
-env: LunarLander-v2
+env: CartPole-v0
 lr: 1e-2
 hidden_size: 32
 n_episodes: 10000
