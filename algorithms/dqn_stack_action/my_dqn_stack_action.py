@@ -13,6 +13,9 @@ import os
 import numpy as np
 import random
 
+torch.manual_seed(1434)
+np.random.seed(1434)
+
 
 class ReplayMemory(object):
     def __init__(self, capacity):
@@ -23,7 +26,6 @@ class ReplayMemory(object):
     def __len__(self):
         return len(self.memory)
 
-
     def push(self, transition):
         if len(self.memory) < self.capacity:
             self.memory.append(None)
@@ -33,25 +35,6 @@ class ReplayMemory(object):
 
     def sample(self, batch_size):
         return random.sample(self.memory, batch_size)
-
-
-def one_hot_vec(act, n_acts):
-    ohv = [0.] * n_acts
-    ohv[act] = 1.
-    return ohv
-
-
-def argmax_and_max(Q_fnc, obs, n_acts):
-    device = next(Q_fnc.parameters()).device
-    Q_max, act_max = 0, 0
-    for act in range(n_acts):
-        Q_input = torch.from_numpy(np.append(obs, one_hot_vec(act, n_acts))).to(device=device, dtype=torch.float)
-        Q_value = Q_fnc(Q_input).item()
-        if Q_value > Q_max:
-            act_max = act
-            Q_max = Q_value
-
-    return act_max, Q_max
 
 
 def train(configs):
@@ -69,9 +52,9 @@ def train(configs):
     obs_dim = env.observation_space.shape[0]
     n_acts = env.action_space.n
 
-    input_dim = obs_dim + n_acts # plus one hot action
-    Q_fnc = mlp(input_dim, 1, hidden_size).to(device)
-    Q_hat_fnc = mlp(input_dim, 1, hidden_size).to(device)
+    input_dim = obs_dim
+    Q_fnc = mlp(input_dim, n_acts, hidden_size).to(device)
+    Q_hat_fnc = mlp(input_dim, n_acts, hidden_size).to(device)
     Q_hat_fnc.load_state_dict(Q_fnc.state_dict())
 
     optimizer = optim.Adam(Q_fnc.parameters(), lr=lr)
@@ -93,8 +76,8 @@ def train(configs):
             if epsilon < ep_thresh:
                 act = random.randint(0, n_acts - 1)
             else:
-                with torch.no_grad():
-                    act, _ = argmax_and_max(Q_fnc, obs, n_acts)
+                obs = torch.from_numpy(obs).to(device=device, dtype=torch.float)
+                act = torch.argmax(Q_fnc(obs)).item()
 
             pre_obs = copy.deepcopy(obs)
             obs, reward, done, info = env.step(act)
@@ -113,9 +96,23 @@ def train(configs):
                     y[i] = b_transitions[i][2]
                 else:
                     with torch.no_grad():
-                        act_max, Q_value_max = argmax_and_max(Q_hat_fnc, b_transitions[i][0], n_acts)
-                        y[i] = b_transitions[i][2] + gamma*Q_value_max
+                        b_inputs = torch.tensor(b_transitions[i][3]).to(device=device, dtype=torch.float)
+                        b_outputs = Q_hat_fnc(b_inputs)
+                        y[i] = b_transitions[i][2] + gamma*(b_outputs.max().item())
 
+            print(y)
+            b_transitions = np.array(b_transitions)
+            reward_mask = np.bitwise_xor(b_transitions[:,-1].astype(int), np.ones(batch_size, dtype=int))
+            b_next_states = np.stack( b_transitions[:,3])
+            print(b_next_states.shape)
+
+            yy = b_transitions[:,2] + reward_mask * (Q_hat_fnc(torch.from_numpy(b_next_states).to(
+                device=device, dtype=torch.float)).max(1)[0]).detach().numpy() * gamma
+
+            print(y.shape)
+            print(yy.shape)
+            print(np.squeeze(y) - yy)
+            exit(0)
             Q_input = np.zeros([batch_size, obs_dim + n_acts])
             for i in range(batch_size):
                 Q_input[i] = np.append(b_transitions[i][0], one_hot_vec(b_transitions[i][1], n_acts))
