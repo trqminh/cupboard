@@ -87,40 +87,29 @@ def train(configs):
             if len(D) < batch_size:
                 continue
 
-            optimizer.zero_grad()
-            b_transitions = D.sample(batch_size)
-            y = np.zeros([batch_size, 1])
+            b_transitions = np.array(D.sample(batch_size))
 
-            for i, transition in enumerate(b_transitions):
-                if transition[-1] == True:
-                    y[i] = b_transitions[i][2]
-                else:
-                    with torch.no_grad():
-                        b_inputs = torch.tensor(b_transitions[i][3]).to(device=device, dtype=torch.float)
-                        b_outputs = Q_hat_fnc(b_inputs)
-                        y[i] = b_transitions[i][2] + gamma*(b_outputs.max().item())
+            b_reward_mask = np.bitwise_xor(b_transitions[:,-1].astype(int), np.ones(batch_size, dtype=int))
+            b_reward_mask = torch.from_numpy(b_reward_mask).to(device=device, dtype=torch.float)
 
-            print(y)
-            b_transitions = np.array(b_transitions)
-            reward_mask = np.bitwise_xor(b_transitions[:,-1].astype(int), np.ones(batch_size, dtype=int))
+            b_reward = np.stack(b_transitions[:,2])
+            b_reward = torch.from_numpy(b_reward).to(device=device, dtype=torch.float)
+
             b_next_states = np.stack( b_transitions[:,3])
-            print(b_next_states.shape)
+            b_next_states = torch.from_numpy(b_next_states).to(device=device, dtype=torch.float)
 
-            yy = b_transitions[:,2] + reward_mask * (Q_hat_fnc(torch.from_numpy(b_next_states).to(
-                device=device, dtype=torch.float)).max(1)[0]).detach().numpy() * gamma
+            y = b_reward + b_reward_mask * (Q_hat_fnc(b_next_states).max(1)[0]).detach().numpy() * gamma
 
-            print(y.shape)
-            print(yy.shape)
-            print(np.squeeze(y) - yy)
-            exit(0)
-            Q_input = np.zeros([batch_size, obs_dim + n_acts])
-            for i in range(batch_size):
-                Q_input[i] = np.append(b_transitions[i][0], one_hot_vec(b_transitions[i][1], n_acts))
+            b_pre_states = np.stack(b_transitions[:,0])
+            b_pre_states = torch.from_numpy(b_pre_states).to(device=device, dtype=torch.float)
 
-            y = torch.from_numpy(y).to(device=device, dtype=torch.float)
-            Q_input = torch.from_numpy(Q_input).to(device=device, dtype=torch.float)
+            b_acts = np.stack(b_transitions[:,1])
+            b_acts = torch.from_numpy(b_acts).to(device=device, dtype=torch.long).unsqueeze(1)
 
-            loss = torch.mean((y - Q_fnc(Q_input))**2)
+            pred_Q = torch.gather(Q_fnc(b_pre_states), 1, b_acts)
+
+            optimizer.zero_grad()
+            loss = torch.mean((y - pred_Q)**2)
             loss.backward()
             optimizer.step()
 
