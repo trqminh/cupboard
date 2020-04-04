@@ -63,10 +63,11 @@ def train(configs):
     Q_fnc.train()
     Q_hat_fnc.eval()
     step = 0
+    ep_ret_list = []
 
     for ep in range(n_episodes):
         loss = 1000000000.0
-        episode_rew = 0.
+        episode_ret = 0.
         done = False
         obs = env.reset()
 
@@ -76,12 +77,12 @@ def train(configs):
             if epsilon < ep_thresh:
                 act = random.randint(0, n_acts - 1)
             else:
-                obs = torch.from_numpy(obs).to(device=device, dtype=torch.float)
-                act = torch.argmax(Q_fnc(obs)).item()
+                obs_t = torch.from_numpy(obs).to(device=device, dtype=torch.float)
+                act = torch.argmax(Q_fnc(obs_t)).item()
 
             pre_obs = copy.deepcopy(obs)
             obs, reward, done, info = env.step(act)
-            episode_rew += reward
+            episode_ret += reward
             D.push([pre_obs, act, reward, obs, done])
 
             if len(D) < batch_size:
@@ -98,7 +99,7 @@ def train(configs):
             b_next_states = np.stack( b_transitions[:,3])
             b_next_states = torch.from_numpy(b_next_states).to(device=device, dtype=torch.float)
 
-            y = b_reward + b_reward_mask * (Q_hat_fnc(b_next_states).max(1)[0]).detach().numpy() * gamma
+            y = b_reward + b_reward_mask * (Q_hat_fnc(b_next_states).max(1)[0]) * gamma
 
             b_pre_states = np.stack(b_transitions[:,0])
             b_pre_states = torch.from_numpy(b_pre_states).to(device=device, dtype=torch.float)
@@ -118,8 +119,10 @@ def train(configs):
                 step = 0
 
             if done:
+                ep_ret_list.append(episode_ret)
                 break
 
-        if ep % 10 == 0:
-            print('Episode {}, loss: {:.2f}, episode_reward: {:.2f}'.format(ep, loss, episode_rew))
+        if ep % 50 == 0:
+            print('Episode {}, loss: {:.2f}, mean episode return: {:.2f}'.format(ep, loss, np.mean(ep_ret_list)))
+            ep_ret_list = []
 
