@@ -22,7 +22,6 @@ def main():
 
     algo_name = configs['algo']
     my_module = importlib.import_module('algorithms.' + algo_name + '.my_' + algo_name)
-    env = gym.make(configs['env'])
 
     if configs['test']:
         my_module.test(configs)
