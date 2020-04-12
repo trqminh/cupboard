@@ -42,23 +42,6 @@ class ReplayMemory(object):
         return random.sample(self.memory, batch_size)
 
 
-def optimize_network(Q_net, Q_target_net, batch, gamma, optimizer):
-    # SAMPLE MINIBATCH AND OPTIMIZE
-    batch_done_mask = torch.cat(batch.done_mask).to(dtype=torch.float)
-    batch_reward = torch.cat(batch.reward).to(dtype=torch.float)
-    batch_state = torch.cat(batch.state).to(dtype=torch.float)
-    batch_act = torch.cat(batch.act).to(dtype=torch.long).unsqueeze(1)
-    batch_next_state = torch.cat(batch.next_state).to(dtype=torch.float)
-
-    y = batch_reward + batch_done_mask * gamma * (Q_target_net(batch_next_state).max(1)[0])
-    predict_Q = torch.gather(Q_net(batch_state), 1, batch_act).squeeze(1)
-
-    loss = torch.mean(( (y - predict_Q) ** 2))
-    optimizer.zero_grad()
-    loss.backward()
-    optimizer.step()
-
-
 def train(configs):
     # GET CONFIG
     env = gym.make(configs['env'])
@@ -82,6 +65,7 @@ def train(configs):
     Q_target_net = mlp([input_dim] + hidden_sizes + [n_acts]).to(device)
     Q_target_net.load_state_dict(Q_net.state_dict())
     optimizer = optim.Adam(Q_net.parameters(), lr=lr)
+    criterion = nn.MSELoss()
 
     D = ReplayMemory(replay_mem_size)
     Q_net.train()
@@ -123,7 +107,19 @@ def train(configs):
             transitions = D.sample(batch_size)
             batch = Transition(*zip(*transitions))
 
-            optimize_network(Q_net, Q_target_net, batch, gamma, optimizer)
+            batch_done_mask = torch.cat(batch.done_mask).to(dtype=torch.float)
+            batch_reward = torch.cat(batch.reward).to(dtype=torch.float)
+            batch_state = torch.cat(batch.state).to(dtype=torch.float)
+            batch_act = torch.cat(batch.act).to(dtype=torch.long).unsqueeze(1)
+            batch_next_state = torch.cat(batch.next_state).to(dtype=torch.float)
+
+            y = batch_reward + batch_done_mask * gamma * (Q_target_net(batch_next_state).max(1)[0])
+            predict_Q = torch.gather(Q_net(batch_state), 1, batch_act).squeeze(1)
+
+            loss = criterion(predict_Q, y)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
 
             # RESET TARGET Q NETWORK
             step += 1
