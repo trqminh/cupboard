@@ -42,30 +42,19 @@ class ReplayMemory(object):
         return random.sample(self.memory, batch_size)
 
 
-def optimize_network(Q_net, Q_target_net, batch):
+def optimize_network(Q_net, Q_target_net, batch, gamma, optimizer):
     # SAMPLE MINIBATCH AND OPTIMIZE
-    batch_done_mask = torch.cat(batch.done_mask).to(device=device, dtype=torch.float)
-    batch_reward = torch.cat(batch.reward).to(device=device, dtype=torch.float)
-    print(batch_reward.shape, batch_done_mask.shape)
+    batch_done_mask = torch.cat(batch.done_mask).to(dtype=torch.float)
+    batch_reward = torch.cat(batch.reward).to(dtype=torch.float)
+    batch_state = torch.cat(batch.state).to(dtype=torch.float)
+    batch_act = torch.cat(batch.act).to(dtype=torch.long).unsqueeze(1)
+    batch_next_state = torch.cat(batch.next_state).to(dtype=torch.float)
 
+    y = batch_reward + batch_done_mask * gamma * (Q_target_net(batch_next_state).max(1)[0])
+    predict_Q = torch.gather(Q_net(batch_state), 1, batch_act).squeeze(1)
 
-    b_next_states = np.stack(b_transitions[:,3])
-    b_next_states = torch.from_numpy(b_next_states).to(device=device, dtype=torch.float)
-
-    y = b_reward + b_reward_mask * (Q_target_net(b_next_states).max(1)[0]) * gamma
-
-    # compute predict value
-    b_pre_states = np.stack(b_transitions[:,0])
-    b_pre_states = torch.from_numpy(b_pre_states).to(device=device, dtype=torch.float)
-
-    b_acts = np.stack(b_transitions[:,1])
-    b_acts = torch.from_numpy(b_acts).to(device=device, dtype=torch.long).unsqueeze(1)
-
-    pred_Q = torch.gather(Q_net(b_pre_states), 1, b_acts)
-
-    # optimize mse
+    loss = torch.mean(( (y - predict_Q) ** 2))
     optimizer.zero_grad()
-    loss = torch.mean((y - pred_Q)**2)
     loss.backward()
     optimizer.step()
 
@@ -121,6 +110,7 @@ def train(configs):
 
             next_obs = torch.from_numpy(next_obs).to(device=device,dtype=torch.float).unsqueeze(0)
             reward = torch.tensor([float(reward)], device=device)
+            act = torch.tensor([act], device=device)
             done_mask = torch.tensor([1 - int(done)], device=device)
 
             D.push([obs, act, reward, next_obs, done_mask])
@@ -133,7 +123,7 @@ def train(configs):
             transitions = D.sample(batch_size)
             batch = Transition(*zip(*transitions))
 
-            optimize_network(Q_net, Q_target_net, batch)
+            optimize_network(Q_net, Q_target_net, batch, gamma, optimizer)
 
             # RESET TARGET Q NETWORK
             step += 1
