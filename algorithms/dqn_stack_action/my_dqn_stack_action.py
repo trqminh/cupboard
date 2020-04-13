@@ -52,7 +52,7 @@ def train(configs):
     device = configs['device']
     render = configs['render']
     gamma = configs['discount_factor']
-    C = configs['reset_step']
+    target_update_step = configs['target_update_step']
     ep_thresh = configs['ep_thresh']
     replay_mem_size = configs['replay_mem_size']
 
@@ -110,7 +110,7 @@ def train(configs):
             transitions = D.sample(batch_size)
             batch = Transition(*zip(*transitions))
 
-            batch_done_mask = torch.cat(batch.done_mask).to(dtype=torch.float)
+            batch_done_mask = torch.cat(batch.done_mask)
             batch_reward = torch.cat(batch.reward)
             batch_state = torch.cat(batch.state)
             batch_act = torch.cat(batch.act)
@@ -127,7 +127,7 @@ def train(configs):
             optimizer.step()
 
             # RESET TARGET Q NETWORK
-            if global_step % C == 0:
+            if global_step % target_update_step == 0:
                 Q_target_net.load_state_dict(Q_net.state_dict())
 
             if done:
