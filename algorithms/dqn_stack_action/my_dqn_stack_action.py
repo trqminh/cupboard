@@ -64,6 +64,7 @@ def train(configs):
     Q_net = mlp([input_dim] + hidden_sizes + [n_acts]).to(device)
     Q_target_net = mlp([input_dim] + hidden_sizes + [n_acts]).to(device)
     Q_target_net.load_state_dict(Q_net.state_dict())
+
     optimizer = optim.Adam(Q_net.parameters(), lr=lr)
     criterion = nn.MSELoss()
 
@@ -71,31 +72,33 @@ def train(configs):
     Q_net.train()
     Q_target_net.eval()
     ep_rets = []
+    ep_lens = []
+    global_step = 0
 
     # TRAINING
     for ep in range(n_episodes):
-        loss = 1000000000.0
+        loss = None
         ep_ret = 0.
         done = False
         obs = torch.from_numpy(env.reset()).to(device=device, dtype=torch.float).unsqueeze(0)
 
-        for step in count():
+        for t in count():
+            global_step += 1
             # SELECT ACTION WITH EPSILON GREEDY
             epsilon = random.uniform(0,1)
             if epsilon < ep_thresh:
-                act = random.randint(0, n_acts - 1)
+                act = torch.tensor([[random.randint(0, n_acts - 1)]], device=device, dtype=torch.long)
             else:
                 with torch.no_grad():
-                    act = torch.argmax(Q_net(obs)).item()
+                    act = Q_net(obs).max(1)[1].view(1,1)
 
             # EXCUTE ACTION AND STORE TRANSITION
-            next_obs, reward, done, _ = env.step(act)
+            next_obs, reward, done, _ = env.step(act.item())
             ep_ret += reward
 
             next_obs = torch.from_numpy(next_obs).to(device=device,dtype=torch.float).unsqueeze(0)
             reward = torch.tensor([float(reward)], device=device)
-            act = torch.tensor([act], device=device)
-            done_mask = torch.tensor([1 - int(done)], device=device)
+            done_mask = torch.tensor([1. - float(done)], device=device)
 
             D.push([obs, act, reward, next_obs, done_mask])
             obs = next_obs
@@ -108,30 +111,33 @@ def train(configs):
             batch = Transition(*zip(*transitions))
 
             batch_done_mask = torch.cat(batch.done_mask).to(dtype=torch.float)
-            batch_reward = torch.cat(batch.reward).to(dtype=torch.float)
-            batch_state = torch.cat(batch.state).to(dtype=torch.float)
-            batch_act = torch.cat(batch.act).to(dtype=torch.long).unsqueeze(1)
+            batch_reward = torch.cat(batch.reward)
+            batch_state = torch.cat(batch.state)
+            batch_act = torch.cat(batch.act)
             batch_next_state = torch.cat(batch.next_state).to(dtype=torch.float)
 
-            y = batch_reward + batch_done_mask * gamma * (Q_target_net(batch_next_state).max(1)[0])
-            predict_Q = torch.gather(Q_net(batch_state), 1, batch_act).squeeze(1)
+            y = batch_reward + batch_done_mask * gamma * (Q_target_net(batch_next_state).max(1)[0].detach())
+            predict_Q = torch.gather(Q_net(batch_state), 1, batch_act)
 
-            loss = criterion(predict_Q, y)
+            loss = criterion(predict_Q, y.unsqueeze(1))
             optimizer.zero_grad()
             loss.backward()
+            for param in Q_net.parameters():
+                param.grad.data.clamp_(-1, 1)
             optimizer.step()
 
             # RESET TARGET Q NETWORK
-            step += 1
-            if step >= C:
+            if global_step % C == 0:
                 Q_target_net.load_state_dict(Q_net.state_dict())
-                step = 0
 
             if done:
                 ep_rets.append(ep_ret)
+                ep_lens.append(t + 1)
                 break
 
-        if ep % 50 == 0:
-            print('Episode {}, loss: {:.2f}, mean episode return: {:.2f}'.format(ep, loss, np.mean(ep_rets)))
+        if ep % 20 == 0:
+            print('Episode {}, loss: {:.2f}, mean episode length: {:.2f}, mean episode return: {:.2f}'.format(
+                ep, loss, np.mean(ep_lens), np.mean(ep_rets)))
             ep_rets = []
+            ep_lens = []
 
