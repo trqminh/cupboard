@@ -6,7 +6,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 from torch.distributions.categorical import Categorical
-from models import *
+from networks import *
 import time
 import copy
 import os
@@ -24,7 +24,7 @@ def reward_to_go(rews):
 
 def train(configs):
     env = gym.make(configs['env'])
-    hidden_size = configs['hidden_size']
+    hidden_sizes = configs['hidden_sizes']
     lr = float(configs['lr'])
     n_epochs = configs['n_epochs']
     batch_size = configs['batch_size']
@@ -34,7 +34,7 @@ def train(configs):
     obs_dim = env.observation_space.shape[0]
     n_acts = env.action_space.n
 
-    policy = mlp(obs_dim, n_acts, hidden_size).to(device)
+    policy = mlp([obs_dim] + hidden_sizes + [n_acts]).to(device)
     optimizer = optim.Adam(policy.parameters(), lr=lr)
     best_policy_state_dict = copy.deepcopy(policy.state_dict())
     best_mean_episode_ret = -1e6
@@ -116,8 +116,8 @@ def train(configs):
 
     policy.load_state_dict(best_policy_state_dict)
     torch.save(policy.state_dict(), configs['trained_model_path'])
-    np.savetxt('./info/' + configs['env'] + '_' + configs['algo'] + '_mean_ep_ret.csv', np.asarray(saver_mean_ep_rets), delimiter=",")
-    np.savetxt('./info/' + configs['env'] + '_' + configs['algo'] + '_mean_ep_len.csv', np.asarray(saver_mean_ep_lens), delimiter=",")
+    np.savetxt('./experiments/' + exp_name + '/' + configs['algo'] + '_mean_ep_ret.csv', np.asarray(saver_mean_ep_rets), delimiter=",")
+    np.savetxt('./experiments/' + exp_name + '/' + configs['algo'] + '_mean_ep_len.csv', np.asarray(saver_mean_ep_lens), delimiter=",")
 
 
 def test(configs):
@@ -126,14 +126,14 @@ def test(configs):
         return None
 
     env = gym.make(configs['env'])
-    hidden_size = configs['hidden_size']
+    hidden_sizes = configs['hidden_sizes']
     device = configs['device']
 
     obs = env.reset()
     obs_dim = env.observation_space.shape[0]
     n_acts = env.action_space.n
 
-    policy = mlp(obs_dim, n_acts, hidden_size).to(device)
+    policy = mlp([obs_dim] + hidden_sizes + [n_acts]).to(device)
     policy.load_state_dict(torch.load(configs['trained_model_path']))
     policy.eval()
     while True:

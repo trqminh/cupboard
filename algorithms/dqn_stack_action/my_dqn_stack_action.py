@@ -6,7 +6,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 from torch.distributions.categorical import Categorical
-from models import *
+from networks import *
 import time
 import copy
 import os

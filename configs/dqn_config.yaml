@@ -1,3 +1,4 @@
+exp_name: exp_2
 algo: dqn_stack_action
 env: LunarLander-v2
 lr: 1e-2

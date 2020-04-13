@@ -1,11 +1,11 @@
+exp_name: exp_1
 algo: vanilla_pg
 env: LunarLander-v2
 lr: 1e-2
-hidden_size: 32
+hidden_sizes: [32]
 n_epochs: 1000
 batch_size: 5000
 render: False
 device: cuda:0
 trained_model_path: ./algorithms/vanilla_pg/trained_models/my_vanilla_pg.pth
 test: False
-

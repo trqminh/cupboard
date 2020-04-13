@@ -3,6 +3,7 @@ import importlib
 import gym
 import argparse
 import yaml
+import torch
 
 
 def parse_args():
@@ -22,6 +23,7 @@ def main():
 
     algo_name = configs['algo']
     my_module = importlib.import_module('algorithms.' + algo_name + '.my_' + algo_name)
+    configs['device'] = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
     if configs['test']:
         my_module.test(configs)
