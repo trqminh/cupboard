@@ -2,7 +2,7 @@ algo: dqn_stack_action
 env: LunarLander-v2
 lr: 1e-2
 n_episodes: 1000
-hidden_sizes: '[64, 64, 32]'
+hidden_sizes: [64, 64, 32]
 ep_thresh: 0.1
 batch_size: 128
 render: False

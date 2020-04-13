@@ -45,7 +45,7 @@ class ReplayMemory(object):
 def train(configs):
     # GET CONFIG
     env = gym.make(configs['env'])
-    hidden_sizes = literal_eval(configs['hidden_sizes'])
+    hidden_sizes = configs['hidden_sizes']
     lr = float(configs['lr'])
     n_episodes = configs['n_episodes']
     batch_size = configs['batch_size']
@@ -114,7 +114,7 @@ def train(configs):
             batch_reward = torch.cat(batch.reward)
             batch_state = torch.cat(batch.state)
             batch_act = torch.cat(batch.act)
-            batch_next_state = torch.cat(batch.next_state).to(dtype=torch.float)
+            batch_next_state = torch.cat(batch.next_state)
 
             y = batch_reward + batch_done_mask * gamma * (Q_target_net(batch_next_state).max(1)[0].detach())
             predict_Q = torch.gather(Q_net(batch_state), 1, batch_act)
