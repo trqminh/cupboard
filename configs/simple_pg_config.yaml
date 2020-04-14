@@ -7,5 +7,5 @@ n_epochs: 1000
 batch_size: 5000
 render: False
 device: cuda:0
-trained_model_path: ./algorithms/simple_pg/trained_models/my_simple_pg.pth
+trained_model_path: ./algorithms/simple_pg/my_simple_pg.pth
 test: False

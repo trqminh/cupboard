@@ -30,6 +30,7 @@ def train(configs):
     batch_size = configs['batch_size']
     device = configs['device']
     render = configs['render']
+    exp_name = configs['exp_name']
 
     obs_dim = env.observation_space.shape[0]
     n_acts = env.action_space.n
@@ -116,8 +117,11 @@ def train(configs):
 
     policy.load_state_dict(best_policy_state_dict)
     torch.save(policy.state_dict(), configs['trained_model_path'])
-    np.savetxt('./experiments/' + exp_name + '/' + configs['algo'] + '_mean_ep_ret.csv', np.asarray(saver_mean_ep_rets), delimiter=",")
-    np.savetxt('./experiments/' + exp_name + '/' + configs['algo'] + '_mean_ep_len.csv', np.asarray(saver_mean_ep_lens), delimiter=",")
+    exp_path = './experiments/' + exp_name
+    if not os.path.isdir(exp_path):
+        os.mkdir(exp_path)
+    np.savetxt(exp_path + '/' + configs['algo'] + '_mean_ep_ret.csv', np.asarray(saver_mean_ep_rets), delimiter=",")
+    np.savetxt(exp_path + '/' + configs['algo'] + '_mean_ep_len.csv', np.asarray(saver_mean_ep_lens), delimiter=",")
 
 
 def test(configs):
