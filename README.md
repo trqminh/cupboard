@@ -8,7 +8,6 @@
 ![Mean episode return through each epoch](./experiments/exp_1/ret.png)   
 *Mean episode return through each epoch*   
 
-
 ![Mean episode length through each epoch](./experiments/exp_1/len.png)   
 *Mean episode length through each epoch*   
 
