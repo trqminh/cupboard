@@ -35,7 +35,7 @@ def main():
             label = os.path.splitext(file_name)[0]
             plt.plot(epochs, rets, label=label)
 
-        plt.ylabel('mean episode' + item)
+        plt.ylabel('mean episode ' + item)
         plt.xlabel('Epoch')
         plt.legend(loc='lower right')
         plt.savefig(exp_path + item + '.png')
