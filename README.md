@@ -5,6 +5,7 @@
 - Model: MLP 1 hidden layer (hidden size = 32)
 - Optimizer: Adam (lr = 1e-2)
 - Algorithms: Simple PG, Vanilla PG (Simple PG, actor critic network)
+
 ![Mean episode return through each epoch](./experiments/exp_1/ret.png)   
 *Mean episode return through each epoch*   
 
