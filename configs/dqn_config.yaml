@@ -1,5 +1,5 @@
 exp_name: exp_2
-algo: dqn_stack_action
+algo: dqn
 env: LunarLander-v2
 lr: 1e-2
 n_episodes: 1000
