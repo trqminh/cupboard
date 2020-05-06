@@ -24,6 +24,11 @@ def reward_to_go(rews):
 
 def train(configs):
     env = gym.make(configs['env'])
+    assert isinstance(env.observation_space, Box), \
+        "This example only works for envs with continuous state spaces."
+    assert isinstance(env.action_space, Discrete), \
+        "This example only works for envs with discrete action spaces."
+
     hidden_sizes = configs['hidden_sizes']
     lr = float(configs['lr'])
     n_epochs = configs['n_epochs']
