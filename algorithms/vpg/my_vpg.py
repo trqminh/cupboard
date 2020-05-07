@@ -37,7 +37,6 @@ def train(configs):
     render = configs['render']
     exp_name = configs['exp_name']
 
-
     # Declare policy
     obs_dim = env.observation_space.shape[0]
     out_layer_dim = None
