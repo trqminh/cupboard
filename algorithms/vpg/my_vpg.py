@@ -48,7 +48,9 @@ def train(configs):
     if is_continuous:
         out_layer_dim = env.action_space.shape[0]
         output_activation = nn.Tanh
-        log_std = torch.nn.Parameter(-0.5 * torch.ones(out_layer_dim, dtype=torch.float32)).to(device)
+        log_std = -0.5 * np.ones(out_layer_dim, dtype=np.float32)
+        log_std = torch.nn.Parameter(torch.as_tensor(log_std))
+        # log_std = torch.nn.Parameter(-0.5 * torch.ones(out_layer_dim, dtype=torch.float32)).to(device)
     else:
         out_layer_dim = env.action_space.n
         output_activation = nn.Identity
@@ -57,7 +59,11 @@ def train(configs):
     baseline_model = mlp([obs_dim] + hidden_sizes + [1]).to(device)
 
     # optimizer and things
-    optimizer = optim.Adam(policy.parameters(), lr=lr)
+    params = list(policy.parameters())
+    if is_continuous:
+        params += list(log_std)
+
+    optimizer = optim.Adam(params, lr=lr)
     optimizer_mse = optim.Adam(baseline_model.parameters(), lr=lr)
     best_policy_state_dict = copy.deepcopy(policy.state_dict())
     best_mean_episode_ret = -1e6
@@ -121,9 +127,12 @@ def train(configs):
         batch_logits = policy(batch_obs)
         batch_distribution = None
         batch_log_prob = None
+
         if is_continuous:
+            batch_log_std = torch.cat([log_std.unsqueeze(0)] * batch_logits.shape[0])
+            batch_std = torch.exp(batch_log_std)
             batch_distribution = Normal(batch_logits, batch_std)
-            batch_log_prob = batch_distribution.log_prob(batch_acts)
+            batch_log_prob = batch_distribution.log_prob(batch_acts).sum(axis=-1)
         else:
             batch_distribution = Categorical(F.softmax(batch_logits, dim=1))
             batch_log_prob = batch_distribution.log_prob(batch_acts)
