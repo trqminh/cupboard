@@ -40,12 +40,20 @@ def train(configs):
     # Declare policy
     obs_dim = env.observation_space.shape[0]
     out_layer_dim = None
+    output_activation = None
+
+    # log std for continuous
+    log_std = None
+
     if is_continuous:
         out_layer_dim = env.action_space.shape[0]
+        output_activation = nn.Tanh
+        log_std = torch.nn.Parameter(-0.5 * torch.ones(out_layer_dim, dtype=torch.float32)).to(device)
     else:
         out_layer_dim = env.action_space.n
+        output_activation = nn.Identity
 
-    policy = mlp([obs_dim] + hidden_sizes + [out_layer_dim]).to(device)
+    policy = mlp(sizes = [obs_dim] + hidden_sizes + [out_layer_dim], output_activation=output_activation).to(device)
     baseline_model = mlp([obs_dim] + hidden_sizes + [1]).to(device)
 
     # optimizer and things
@@ -66,8 +74,6 @@ def train(configs):
         batch_weights = []
         batch_rets = []
         batch_lens = []
-        if is_continuous:
-            batch_std = []
 
         obs = env.reset()
         done = False
@@ -82,20 +88,15 @@ def train(configs):
 
             logit = policy(torch.from_numpy(obs).to(dtype=torch.float, device=device))
             if is_continuous:
-                log_std = torch.nn.Parameter(-0.5 * torch.ones(out_layer_dim, dtype=torch.float32)).to(device)
                 std = torch.exp(log_std)
-                batch_std.append(std)
                 distribution = Normal(logit, std) # logit as mean
                 act = distribution.sample()
-                print(logit)
-                print(act)
-                exit(0)
             else:
                 distribution = Categorical(F.softmax(logit, dim=0))
                 act = distribution.sample()
 
-            obs, reward, done, info = env.step(act.item())
-            batch_acts.append(act.item())
+            obs, reward, done, info = env.step(act.tolist())
+            batch_acts.append(act.tolist())
             ep_rews.append(reward)
 
             if done:
