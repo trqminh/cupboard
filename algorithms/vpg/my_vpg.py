@@ -48,9 +48,7 @@ def train(configs):
     if is_continuous:
         out_layer_dim = env.action_space.shape[0]
         output_activation = nn.Tanh
-        log_std = -0.5 * np.ones(out_layer_dim, dtype=np.float32)
-        log_std = torch.nn.Parameter(torch.as_tensor(log_std))
-        # log_std = torch.nn.Parameter(-0.5 * torch.ones(out_layer_dim, dtype=torch.float32)).to(device)
+        log_std = torch.nn.Parameter(-0.5 * torch.ones(out_layer_dim, dtype=torch.float32)).to(device)
     else:
         out_layer_dim = env.action_space.n
         output_activation = nn.Identity
@@ -61,7 +59,8 @@ def train(configs):
     # optimizer and things
     params = list(policy.parameters())
     if is_continuous:
-        params += list(log_std)
+        # params += list(log_std)
+        pass
 
     optimizer = optim.Adam(params, lr=lr)
     optimizer_mse = optim.Adam(baseline_model.parameters(), lr=lr)
