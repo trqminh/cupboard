@@ -162,34 +162,3 @@ def train(configs):
     np.savetxt(exp_path + '/' + configs['algo'] + '_mean_ep_ret.csv', np.asarray(saver_mean_ep_rets), delimiter=",")
     np.savetxt(exp_path + '/' + configs['algo'] + '_mean_ep_len.csv', np.asarray(saver_mean_ep_lens), delimiter=",")
 
-
-def test(configs):
-    if not os.path.isfile(configs['trained_model_path']):
-        print('There is no trained model to validate')
-        return None
-
-    env = gym.make(configs['env'])
-    hidden_sizes = configs['hidden_sizes']
-    device = configs['device']
-
-    obs = env.reset()
-    obs_dim = env.observation_space.shape[0]
-    n_acts = env.action_space.n
-
-    policy = mlp([obs_dim] + hidden_sizes + [n_acts]).to(device)
-    policy.load_state_dict(torch.load(configs['trained_model_path']))
-    policy.eval()
-    while True:
-        env.render()
-        obs = torch.from_numpy(obs).to(dtype=torch.float, device=device)
-
-        logit = policy(obs)
-        m = Categorical(F.softmax(logit, dim=0))
-        act = m.sample()
-
-        obs, reward, done, info = env.step(act.item())
-
-        if done:
-            print(reward)
-            obs, done = env.reset(), False
-
