@@ -48,7 +48,7 @@ def train(configs):
     if is_continuous:
         out_layer_dim = env.action_space.shape[0]
         output_activation = nn.Tanh
-        log_std = torch.nn.Parameter(-0.5 * torch.ones(out_layer_dim, dtype=torch.float32)).to(device)
+        log_std = torch.tensor(-0.5*np.ones(out_layer_dim), dtype=torch.float32, requires_grad=True, device=device)
     else:
         out_layer_dim = env.action_space.n
         output_activation = nn.Identity
@@ -59,8 +59,7 @@ def train(configs):
     # optimizer and things
     params = list(policy.parameters())
     if is_continuous:
-        # params += list(log_std)
-        pass
+        params.append(log_std)
 
     optimizer = optim.Adam(params, lr=lr)
     optimizer_mse = optim.Adam(baseline_model.parameters(), lr=lr)
@@ -88,10 +87,9 @@ def train(configs):
             if render:
                 env.render()
 
-            # save the observation for offline update
-            batch_obs.append(obs.copy())
-
+            batch_obs.append(obs.copy()) # save the observation for offline update
             logit = policy(torch.from_numpy(obs).to(dtype=torch.float, device=device))
+
             if is_continuous:
                 std = torch.exp(log_std)
                 distribution = Normal(logit, std) # logit as mean
@@ -111,10 +109,9 @@ def train(configs):
                 batch_rets.append(ep_ret)
                 batch_lens.append(ep_len)
 
-                # batch_weights += ([ep_ret]*ep_len) # can ben reward to go
-                batch_weights += list(reward_to_go(ep_rews))
-
+                batch_weights += list(reward_to_go(ep_rews)) # batch_weights += ([ep_ret]*ep_len)
                 obs, done, ep_rews = env.reset(), False, []
+
                 if len(batch_obs) > batch_size:
                     break
 
@@ -151,6 +148,7 @@ def train(configs):
             best_policy_state_dict = copy.deepcopy(policy.state_dict())
 
         if epoch % 10 == 0:
+            print('[LOG STD]:\n', batch_log_std)
             print('Epoch {}, loss: {}, mean_episode_return: {:.1f}, mean_episode_len: {:.0f}'.format(epoch, loss,\
                     np.mean(batch_rets), np.mean(batch_lens)))
 
