@@ -71,7 +71,6 @@ def train(configs):
 
     for epoch in range(n_epochs):
         policy.train()
-        optimizer.zero_grad()
 
         batch_obs = []
         batch_acts = []
@@ -134,10 +133,12 @@ def train(configs):
             batch_log_prob = batch_distribution.log_prob(batch_acts)
 
         loss = torch.mean(-batch_log_prob * (batch_weights - batch_baseline))
+        optimizer.zero_grad()
         loss.backward(retain_graph=True)
         optimizer.step()
 
         mse = torch.mean((batch_weights - batch_baseline)**2)
+        optimizer_mse.zero_grad()
         mse.backward()
         optimizer_mse.step()
 
@@ -148,7 +149,6 @@ def train(configs):
             best_policy_state_dict = copy.deepcopy(policy.state_dict())
 
         if epoch % 10 == 0:
-            print('[LOG STD]:\n', batch_log_std)
             print('Epoch {}, loss: {}, mean_episode_return: {:.1f}, mean_episode_len: {:.0f}'.format(epoch, loss,\
                     np.mean(batch_rets), np.mean(batch_lens)))
 
