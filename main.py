@@ -34,8 +34,8 @@ def main():
 
     env = gym.make(configs['env'])
     configs['device'] = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-    vpg = SimplePolicyGradient(configs)
-    vpg.train(env)
+    vpg = VanillaPolicyGradient(configs, env)
+    print(vpg.train(env)[-1])
 
 
 if __name__ == '__main__':
