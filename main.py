@@ -4,7 +4,7 @@ import gym
 import argparse
 import yaml
 import torch
-from algorithms import VanillaPolicyGradient
+from algorithms import *
 
 
 def parse_args():
@@ -34,7 +34,7 @@ def main():
 
     env = gym.make(configs['env'])
     configs['device'] = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-    vpg = VanillaPolicyGradient(configs)
+    vpg = SimplePolicyGradient(configs)
     vpg.train(env)
 
 
