@@ -4,6 +4,7 @@ import gym
 import argparse
 import yaml
 import torch
+from algorithms import VanillaPolicyGradient
 
 
 def parse_args():
@@ -21,14 +22,20 @@ def main():
     print('Configs: ')
     print(configs)
 
+    '''
     algo_name = configs['algo']
     my_module = importlib.import_module('algorithms.' + algo_name + '.my_' + algo_name)
-    configs['device'] = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
     if configs['test']:
         my_module.test(configs)
     else:
         my_module.train(configs)
+    '''
+
+    env = gym.make(configs['env'])
+    configs['device'] = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+    vpg = VanillaPolicyGradient(configs)
+    vpg.train(env)
 
 
 if __name__ == '__main__':
