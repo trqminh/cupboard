@@ -18,11 +18,9 @@ from .policy_base import PolicyBase
 class VanillaPolicyGradient(PolicyBase):
     def __init__(self, configs, env):
         super().__init__(configs, env)
-        self.lr = float(configs['lr'])
-        self.n_epochs = configs['n_epochs']
         self.baseline_model = mlp([self.obs_dim] + self.hidden_sizes + [1]).to(self.device)
 
-    def train(self, env):
+    def train(self):
         # optimizer and things
         params = list(self.policy.parameters()) + list(self.baseline_model.parameters())
         if self.is_continuous:
@@ -36,7 +34,7 @@ class VanillaPolicyGradient(PolicyBase):
         for epoch in range(self.n_epochs):
             self.policy.train()
             self.baseline_model.train()
-            batch_obs, batch_acts, batch_weights, epoch_info = super().train(env)
+            batch_obs, batch_acts, batch_weights, epoch_info = super().train()
 
             batch_baseline = self.baseline_model(batch_obs)
             batch_logits = self.policy(batch_obs)

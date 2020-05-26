@@ -16,27 +16,30 @@ import numpy as np
 
 class PolicyBase(object):
     def __init__(self, configs, env):
-        assert isinstance(env.observation_space, Box), \
+        self.env = env
+        assert isinstance(self.env.observation_space, Box), \
             "This example only works for envs with continuous state spaces."
         self.hidden_sizes = configs['hidden_sizes']
         self.batch_size = configs['batch_size']
         self.device = configs['device']
         self.render = configs['render']
+        self.lr = float(configs['lr'])
+        self.n_epochs = configs['n_epochs']
         self.log_std = None # for continuous action spaces
-        self.is_continuous = isinstance(env.action_space, Box)
+        self.is_continuous = isinstance(self.env.action_space, Box)
 
         # set up policy
-        self.obs_dim = env.observation_space.shape[0]
+        self.obs_dim = self.env.observation_space.shape[0]
         self.n_acts = None
         output_activation = None
 
         if self.is_continuous:
-            self.n_acts = env.action_space.shape[0]
+            self.n_acts = self.env.action_space.shape[0]
             output_activation = nn.Tanh
             self.log_std = torch.tensor(-0.5*np.ones(self.n_acts), 
                     dtype=torch.float32, requires_grad=True, device=self.device)
         else:
-            self.n_acts = env.action_space.n
+            self.n_acts = self.env.action_space.n
             output_activation = nn.Identity
 
         self.policy = mlp(sizes = [self.obs_dim] + self.hidden_sizes + [self.n_acts], 
@@ -51,14 +54,14 @@ class PolicyBase(object):
 
         return rtgs
 
-    def train(self, env):
+    def train(self):
         batch_obs, batch_acts, batch_weights, batch_rets, batch_lens = \
                 [], [], [], [], []
-        obs, done, ep_rews = env.reset(), False, []
+        obs, done, ep_rews = self.env.reset(), False, []
 
         while True:
             if self.render:
-                env.render()
+                self.env.render()
 
             batch_obs.append(obs.copy()) # save the observation for offline update
             logit = self.policy(torch.from_numpy(obs).to(dtype=torch.float, device=self.device))
@@ -71,7 +74,7 @@ class PolicyBase(object):
                 distribution = Categorical(F.softmax(logit, dim=0))
                 act = distribution.sample()
 
-            obs, reward, done, info = env.step(act.tolist())
+            obs, reward, done, info = self.env.step(act.tolist())
             batch_acts.append(act.tolist())
             ep_rews.append(reward)
 
@@ -82,7 +85,7 @@ class PolicyBase(object):
                 batch_lens.append(ep_len)
 
                 batch_weights += list(self.reward_to_go(ep_rews)) # batch_weights += ([ep_ret]*ep_len)
-                obs, done, ep_rews = env.reset(), False, []
+                obs, done, ep_rews = self.env.reset(), False, []
 
                 if len(batch_obs) > self.batch_size:
                     break
