@@ -1,17 +1,9 @@
 # RLPlayground
-## Experiment 1
-- Env: LunarLander-v2
-- Batch size: 5000
-- Model: MLP 1 hidden layer (hidden size = 32)
-- Optimizer: Adam (lr = 1e-2)
-- Algorithms: Simple PG, Vanilla PG (Simple PG, actor critic network)
+## To Run
+for running a single algorithm on particular environment. (Just vpg & simple_pg are available to run, for both kind of environment: discrete and continuous)
+```
+python main.py --config configs/vpg_cont_config.yaml
+```
+## Experiment
+Working on compare algorithms and its configurations
 
-| ![Mean episode return through each epoch](./experiments/exp_1/ret.png) |
-|:--:|
-| *Mean episode return through each epoch* |
-
-| ![Mean episode length through each epoch](./experiments/exp_1/len.png) |
-|:--:|
-| *Mean episode length through each epoch* |
-
-Coming late: DQN, TRPO, PPO, DDPO
