@@ -1,5 +1,4 @@
-#import algorithms.VanillaPG.my_vanilla_pg as my_vpg
-import importlib
+from importlib import import_module
 import gym
 import argparse
 import yaml
@@ -23,9 +22,15 @@ def main():
     print(configs)
 
     env = gym.make(configs['env'])
-    configs['device'] = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-    spg = SimplePolicyGradient(configs, env)
-    print(spg.train()[-1])
+    if configs['device'] == 'cuda:0':
+        configs['device'] = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+
+    agent = getattr(import_module('algorithms'), configs['algo'])(configs, env)
+    print('Agent: ', type(agent).__name__)
+    if configs['test']:
+        agent.test()
+    else:
+        agent.train()
 
 
 if __name__ == '__main__':
