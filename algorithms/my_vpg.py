@@ -27,10 +27,6 @@ class VanillaPolicyGradient(PolicyBase):
             params.append(self.log_std)
         optimizer = optim.Adam(params, lr=self.lr)
 
-        # save the "best" policy
-        best_policy_state_dict = copy.deepcopy(self.policy.state_dict())
-        best_mean_episode_ret = -1e6
-
         for epoch in range(self.n_epochs):
             self.policy.train()
             self.baseline_model.train()
@@ -61,5 +57,7 @@ class VanillaPolicyGradient(PolicyBase):
                 print('Epoch {}, loss: {}, epoch info: {}'.format(epoch, final_loss,\
                         epoch_info))
 
-    def test(self):
-        pass
+        torch.save(self.best_policy_state_dict, self.trained_model_path)
+
+    def perform(self):
+        super().perform()

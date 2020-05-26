@@ -28,7 +28,7 @@ def main():
     agent = getattr(import_module('algorithms'), configs['algo'])(configs, env)
     print('Agent: ', type(agent).__name__)
     if configs['test']:
-        agent.test()
+        agent.perform()
     else:
         agent.train()
 
