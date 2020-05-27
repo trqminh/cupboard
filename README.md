@@ -5,5 +5,5 @@ for running a single algorithm on particular environment. (Just vpg & simple_pg 
 python main.py --config configs/vpg_cont_config.yaml
 ```
 ## Experiment
-Working on compare algorithms and its configurations
+Working on comparison among algorithms and its configurations
 
