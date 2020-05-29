@@ -114,7 +114,7 @@ class PolicyBase(object):
     def perform(self):
         # In this perform function, I skip the learned log_std, just perform by its mean.
         if os.path.exists(self.trained_model_path):
-            self.policy.load_state_dict(torch.load(self.trained_model_path))
+            self.policy.load_state_dict(torch.load(self.trained_model_path, map_location=self.device))
             obs, done, ep_rews = self.env.reset(), False, []
 
             while True:
