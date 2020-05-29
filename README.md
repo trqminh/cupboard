@@ -4,6 +4,6 @@ for running a single algorithm on particular environment. (Just vpg & simple_pg 
 ```
 python main.py --config configs/vpg_cont_config.yaml
 ```
-## Experiment
+## Experiments
 Working on comparison among algorithms and its configurations
 
