@@ -75,6 +75,13 @@ class PolicyBase(object):
                 std = torch.exp(self.log_std)
                 distribution = Normal(logit, std) # logit as mean
                 act = distribution.sample()
+                '''
+                for i in range(self.n_acts):
+                    act[i] = torch.clamp(act[i], self.env.action_space.low[i], 
+                            self.env.action_space.high[i])
+
+                print(act)
+                '''
             else:
                 distribution = Categorical(F.softmax(logit, dim=0))
                 act = distribution.sample()

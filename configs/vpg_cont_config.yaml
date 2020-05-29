@@ -7,4 +7,4 @@ batch_size: 5000
 render: False
 device: cuda:0
 trained_model_path: ./algorithms/trained_models/my_vpg_cont.pth
-test: True
+test: False
