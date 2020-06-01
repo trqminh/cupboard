@@ -100,6 +100,8 @@ class DDPG(object):
         predict_target = self.critic(batch_state, self.actor(batch_state))
         loss = torch.mean((target - predict_target)**2)
 
+        # TODO: CRITIC LOSS
+
         # OPTIMIZE ACTOR AND CRITIC
         self.optimizer.zero_grad()
         loss.backward()
@@ -126,6 +128,11 @@ class DDPG(object):
                 # SELECT ACTION
                 with torch.no_grad():
                     act = self.actor(obs).squeeze(0) # TODO: + epsilone ~ normal(0,1)
+                    epsilon = torch.randn_like(act)
+                    act = act + epsilon
+                    low = torch.tensor(self.env.action_space.low).to(self.device)
+                    high = torch.tensor(self.env.action_space.high).to(self.device)
+                    act = torch.max(torch.min(act, high), low)
 
                 # EXCUTE ACTION AND STORE TRANSITION
                 next_obs, reward, done, _ = self.env.step(act.tolist())
