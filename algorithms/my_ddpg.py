@@ -48,6 +48,7 @@ class DDPG(object):
             "This example only works for envs with continuous action spaces."
 
         self.hidden_sizes = configs['hidden_sizes']
+        self.critic_hidden_size = configs['critic_hidden_size']
         self.batch_size = configs['batch_size']
         self.device = configs['device']
         self.render = configs['render']
@@ -78,15 +79,13 @@ class DDPG(object):
                         output_activation=output_activation).to(self.device)
         self.target_actor.load_state_dict(self.actor.state_dict())
 
-        self.critic = Critic(self.obs_dim, self.n_acts).to(self.device)
-        self.target_critic = Critic(self.obs_dim, self.n_acts).to(self.device)
+        self.critic = Critic(self.obs_dim, self.n_acts, self.critic_hidden_size).to(self.device)
+        self.target_critic = Critic(self.obs_dim, self.n_acts, self.critic_hidden_size).to(self.device)
         self.target_critic.load_state_dict(self.critic.state_dict())
 
         self.replay_memory = self.ReplayMemory(self.memory_size)
-        self.optimizer = optim.Adam(
-                list(self.actor.parameters()) + list(self.critic.parameters()),
-                lr=self.lr
-            )
+        self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=self.lr)
+        self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=self.lr)
 
     def optimize(self):
         # SAMPLE FROM REPLAY MEMORY
@@ -99,17 +98,26 @@ class DDPG(object):
         batch_act = torch.cat(batch.act)
         batch_next_state = torch.cat(batch.next_state)
 
+        # GRADIENT DESCENT FOR Q (CRICTIC)
+        self.critic_optimizer.zero_grad()
         target = batch_reward + self.gamma * batch_done_mask * \
                 (self.target_critic(batch_next_state, self.target_actor(batch_next_state)).detach())
         predict_target = self.critic(batch_state, batch_act)
-        actor_loss = torch.mean((target - predict_target)**2)
-        critic_loss = -torch.mean(self.critic(batch_state, self.actor(batch_state)))
-        loss = actor_loss + critic_loss
+        q_loss = torch.mean((target - predict_target)**2)
+        q_loss.backward()
+        self.critic_optimizer.step()
 
-        # OPTIMIZE ACTOR AND CRITIC
-        self.optimizer.zero_grad()
-        loss.backward()
-        self.optimizer.step()
+        for p in self.critic.parameters():
+            p.requires_grad = False
+
+        # GRADIENT ASCENT FOR POLICY (ACTOR)
+        self.actor_optimizer.zero_grad()
+        pi_loss = -torch.mean(self.critic(batch_state, self.actor(batch_state)))
+        pi_loss.backward()
+        self.actor_optimizer.step()
+
+        for p in self.critic.parameters():
+            p.requires_grad = True
 
         # UPDATE TARGET NETWORK
         with torch.no_grad():
@@ -168,7 +176,7 @@ class DDPG(object):
                     self.optimize()
 
             # LOGGING
-            if global_step % (self.steps_per_epoch * 20) == 0 and global_step > 0:
+            if global_step % (self.steps_per_epoch * 2) == 0 and global_step > 0:
                 print('Epoch {}, mean episode length: {:.2f}, mean episode return: {:.2f}'.format(
                     global_step//self.steps_per_epoch, np.mean(ep_lens), np.mean(ep_rets)))
                 ep_rets = []
