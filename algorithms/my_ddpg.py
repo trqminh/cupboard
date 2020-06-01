@@ -166,7 +166,7 @@ class DDPG(object):
                     self.optimize()
 
             # LOGGING
-            if global_step % (self.steps_per_epoch * 1) == 0 and global_step > 0:
+            if global_step % (self.steps_per_epoch * 20) == 0 and global_step > 0:
                 print('Epoch {}, mean episode length: {:.2f}, mean episode return: {:.2f}'.format(
                     global_step//self.steps_per_epoch, np.mean(ep_lens), np.mean(ep_rets)))
                 ep_rets = []
