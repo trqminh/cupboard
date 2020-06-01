@@ -127,10 +127,12 @@ class DDPG(object):
 
     def train(self):
         # TRAINING
-        ep_rets = []
-        ep_lens = []
+        self.actor.train()
+        self.critic.train()
+        ep_rets, ep_lens = [], []
         ep_ret, ep_len, done = 0., 0, False
         obs = torch.from_numpy(self.env.reset()).to(device=self.device, dtype=torch.float).unsqueeze(0)
+
         for global_step in range(self.n_epochs * self.steps_per_epoch):
             # SELECT ACTION
             with torch.no_grad():
