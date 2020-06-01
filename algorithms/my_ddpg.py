@@ -97,10 +97,10 @@ class DDPG(object):
 
         target = batch_reward + self.gamma * batch_done_mask * \
                 (self.target_critic(batch_next_state, self.target_actor(batch_next_state)).detach())
-        predict_target = self.critic(batch_state, self.actor(batch_state))
-        loss = torch.mean((target - predict_target)**2)
-
-        # TODO: CRITIC LOSS
+        predict_target = self.critic(batch_state, batch_act)
+        actor_loss = torch.mean((target - predict_target)**2)
+        critic_loss = -torch.mean(self.critic(batch_state, self.actor(batch_state)))
+        loss = actor_loss + critic_loss
 
         # OPTIMIZE ACTOR AND CRITIC
         self.optimizer.zero_grad()
@@ -127,7 +127,7 @@ class DDPG(object):
                 self.global_step += 1
                 # SELECT ACTION
                 with torch.no_grad():
-                    act = self.actor(obs).squeeze(0) # TODO: + epsilone ~ normal(0,1)
+                    act = self.actor(obs).squeeze(0)
                     epsilon = torch.randn_like(act)
                     act = act + epsilon
                     low = torch.tensor(self.env.action_space.low).to(self.device)
@@ -142,7 +142,7 @@ class DDPG(object):
                 reward = torch.tensor([float(reward)], device=self.device)
                 done_mask = torch.tensor([1. - float(done)], device=self.device)
 
-                self.replay_memory.push([obs, act, reward, next_obs, done_mask])
+                self.replay_memory.push([obs, act.unsqueeze(0), reward, next_obs, done_mask])
                 obs = next_obs
 
                 # OPTIMIZATION
