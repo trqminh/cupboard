@@ -52,11 +52,14 @@ class DDPG(object):
         self.device = configs['device']
         self.render = configs['render']
         self.lr = float(configs['lr'])
-        self.n_episodes = configs['n_episodes']
         self.memory_size = configs['memory_size']
         self.gamma = configs['discount_factor']
-        self.target_update_step = configs['target_update_step']
-        self.global_step = 0
+        self.update_after = configs['update_after']
+        self.update_every = configs['update_every']
+        self.max_episode_len = configs['max_episode_len']
+        self.steps_per_epoch = configs['steps_per_epoch']
+        self.n_epochs = configs['n_epochs']
+        self.steps_per_epoch = configs['steps_per_epoch']
 
         # save the "best" policy
         self.best_mean_episode_ret = -1e6
@@ -74,8 +77,8 @@ class DDPG(object):
                         output_activation=output_activation).to(self.device)
         self.target_actor.load_state_dict(self.actor.state_dict())
 
-        self.critic = Critic(self.obs_dim, self.n_acts).to(self.device)
-        self.target_critic = Critic(self.obs_dim, self.n_acts).to(self.device)
+        self.critic = Critic(self.obs_dim, self.n_acts, 64).to(self.device)
+        self.target_critic = Critic(self.obs_dim, self.n_acts, 64).to(self.device)
         self.target_critic.load_state_dict(self.critic.state_dict())
 
         self.replay_memory = self.ReplayMemory(self.memory_size)
@@ -108,56 +111,56 @@ class DDPG(object):
         self.optimizer.step()
 
         # RESET TARGET NETWORK
-        if self.global_step > 0 and self.global_step % self.target_update_step == 0:
-            self.target_actor.load_state_dict(self.actor.state_dict())
-            self.target_critic.load_state_dict(self.critic.state_dict())
-            # TODO: how to update as ddpg type
-
+        #self.target_actor.load_state_dict(self.actor.state_dict())
+        #self.target_critic.load_state_dict(self.critic.state_dict())
+        # TODO: how to update as ddpg type
 
 
     def train(self):
         # TRAINING
         ep_rets = []
         ep_lens = []
-        for ep in range(self.n_episodes):
-            ep_ret, done = 0., False
-            obs = torch.from_numpy(self.env.reset()).to(device=self.device, dtype=torch.float).unsqueeze(0)
+        ep_ret, ep_len, done = 0., 0, False
+        obs = torch.from_numpy(self.env.reset()).to(device=self.device, dtype=torch.float).unsqueeze(0)
+        for global_step in range(self.n_epochs * self.steps_per_epoch):
+            # SELECT ACTION
+            with torch.no_grad():
+                act = self.actor(obs).squeeze(0)
+                act_noise = torch.randn_like(act)
+                act = act + act_noise
+                low = torch.tensor(self.env.action_space.low).to(self.device)
+                high = torch.tensor(self.env.action_space.high).to(self.device)
+                act = torch.max(torch.min(act, high), low)
 
-            for t in count():
-                self.global_step += 1
-                # SELECT ACTION
-                with torch.no_grad():
-                    act = self.actor(obs).squeeze(0)
-                    epsilon = torch.randn_like(act)
-                    act = act + epsilon
-                    low = torch.tensor(self.env.action_space.low).to(self.device)
-                    high = torch.tensor(self.env.action_space.high).to(self.device)
-                    act = torch.max(torch.min(act, high), low)
+            # EXCUTE ACTION AND STORE TRANSITION
+            next_obs, reward, done, _ = self.env.step(act.tolist())
+            ep_ret += reward
+            ep_len += 1
 
-                # EXCUTE ACTION AND STORE TRANSITION
-                next_obs, reward, done, _ = self.env.step(act.tolist())
-                ep_ret += reward
+            next_obs = torch.from_numpy(next_obs).to(device=self.device,dtype=torch.float).unsqueeze(0)
+            reward = torch.tensor([float(reward)], device=self.device)
+            done_mask = torch.tensor([1. - float(done)], device=self.device)
 
-                next_obs = torch.from_numpy(next_obs).to(device=self.device,dtype=torch.float).unsqueeze(0)
-                reward = torch.tensor([float(reward)], device=self.device)
-                done_mask = torch.tensor([1. - float(done)], device=self.device)
+            self.replay_memory.push([obs, act.unsqueeze(0), reward, next_obs, done_mask])
+            obs = next_obs
 
-                self.replay_memory.push([obs, act.unsqueeze(0), reward, next_obs, done_mask])
-                obs = next_obs
+            if done or ep_len >= self.max_episode_len:
+                ep_rets.append(ep_ret)
+                ep_lens.append(ep_len)
+                ep_ret, ep_len, done = 0., 0, False
+                obs = torch.from_numpy(self.env.reset()).to(device=self.device, 
+                        dtype=torch.float).unsqueeze(0)
 
-                # OPTIMIZATION
-                if len(self.replay_memory) >= self.batch_size: # TODO: and time to update
+            # OPTIMIZATION
+            if global_step > self.update_after and global_step % self.update_every == 0:
+                for _ in range(self.update_every):
                     self.optimize()
 
-                if done:
-                    ep_rets.append(ep_ret)
-                    ep_lens.append(t + 1)
-                    break
 
             # TODO: what is need to log
-            if ep % 20 == 0:
-                print('Episode {}, mean episode length: {:.2f}, mean episode return: {:.2f}'.format(
-                    ep, np.mean(ep_lens), np.mean(ep_rets)))
+            if global_step % (self.steps_per_epoch * 1) == 0 and global_step > 0:
+                print('Epoch {}, mean episode length: {:.2f}, mean episode return: {:.2f}'.format(
+                    global_step//self.steps_per_epoch, np.mean(ep_lens), np.mean(ep_rets)))
                 ep_rets = []
                 ep_lens = []
 
