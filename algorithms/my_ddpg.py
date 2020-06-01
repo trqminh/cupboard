@@ -12,6 +12,9 @@ import time
 import copy
 import os
 import numpy as np
+from itertools import count
+from collections import namedtuple
+import random
 
 
 class DDPG(object):
@@ -51,7 +54,7 @@ class DDPG(object):
         self.lr = float(configs['lr'])
         self.n_episodes = configs['n_episodes']
         self.memory_size = configs['memory_size']
-        self.gamma = configs['gamma']
+        self.gamma = configs['discount_factor']
         self.target_update_step = configs['target_update_step']
         self.global_step = 0
 
@@ -71,8 +74,8 @@ class DDPG(object):
                         output_activation=output_activation).to(self.device)
         self.target_actor.load_state_dict(self.actor.state_dict())
 
-        self.critic = Critic(self.obs_dim, self.n_acts)
-        self.target_critic = Critic(self.obs_dim, self.n_acts)
+        self.critic = Critic(self.obs_dim, self.n_acts).to(self.device)
+        self.target_critic = Critic(self.obs_dim, self.n_acts).to(self.device)
         self.target_critic.load_state_dict(self.critic.state_dict())
 
         self.replay_memory = self.ReplayMemory(self.memory_size)
@@ -83,6 +86,7 @@ class DDPG(object):
 
     def optimize(self):
         # SAMPLE FROM REPLAY MEMORY
+        transitions = self.replay_memory.sample(self.batch_size)
         batch = self.Transition(*zip(*transitions))
 
         batch_done_mask = torch.cat(batch.done_mask)
@@ -111,29 +115,31 @@ class DDPG(object):
 
     def train(self):
         # TRAINING
+        ep_rets = []
+        ep_lens = []
         for ep in range(self.n_episodes):
             ep_ret, done = 0., False
-            obs = torch.from_numpy(self.env.reset()).to(device=device, dtype=torch.float).unsqueeze(0)
+            obs = torch.from_numpy(self.env.reset()).to(device=self.device, dtype=torch.float).unsqueeze(0)
 
             for t in count():
                 self.global_step += 1
                 # SELECT ACTION
                 with torch.no_grad():
-                    act = self.actor(obs) # TODO: + epsilone ~ normal(0,1)
+                    act = self.actor(obs).squeeze(0) # TODO: + epsilone ~ normal(0,1)
 
                 # EXCUTE ACTION AND STORE TRANSITION
-                next_obs, reward, done, _ = env.step(act.tolist())
+                next_obs, reward, done, _ = self.env.step(act.tolist())
                 ep_ret += reward
 
-                next_obs = torch.from_numpy(next_obs).to(device=device,dtype=torch.float).unsqueeze(0)
-                reward = torch.tensor([float(reward)], device=device)
-                done_mask = torch.tensor([1. - float(done)], device=device)
+                next_obs = torch.from_numpy(next_obs).to(device=self.device,dtype=torch.float).unsqueeze(0)
+                reward = torch.tensor([float(reward)], device=self.device)
+                done_mask = torch.tensor([1. - float(done)], device=self.device)
 
                 self.replay_memory.push([obs, act, reward, next_obs, done_mask])
                 obs = next_obs
 
                 # OPTIMIZATION
-                if len(D) >= batch_size: # TODO: and time to update
+                if len(self.replay_memory) >= self.batch_size: # TODO: and time to update
                     self.optimize()
 
                 if done:

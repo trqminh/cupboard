@@ -1,0 +1,13 @@
+algo: DDPG
+env: LunarLanderContinuous-v2
+lr: 1e-2
+n_episodes: 1000
+hidden_sizes: [64, 64, 32]
+batch_size: 128
+render: False
+device: cuda:0
+discount_factor: 0.999
+target_update_step: 2000
+trained_model_path: ./algorithms/trained_models/my_ddpg_lunar.pth
+test: False
+memory_size: 10000

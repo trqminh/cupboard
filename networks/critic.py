@@ -14,7 +14,7 @@ class Critic(nn.Module):
     def forward(self, s, a):
         s = self.fc1(s)
         s = self.relu(s)
-        s = torch.cat((s,a))
+        s = torch.cat((s,a), axis=-1)
         s = self.fc2(s)
         s = self.relu(s)
         s = self.fc3(s)
