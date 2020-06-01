@@ -1,7 +1,7 @@
 algo: DDPG
 env: LunarLanderContinuous-v2
 lr: 1e-2
-hidden_sizes: [64, 64, 32]
+hidden_sizes: [512, 512, 512]
 batch_size: 100
 render: False
 device: cuda:0
@@ -10,7 +10,8 @@ update_every: 50
 update_after: 1000
 max_episode_len: 1000
 steps_per_epoch: 4000
-n_epochs: 100
+n_epochs: 1000
+polyak: 0.995
 trained_model_path: ./algorithms/trained_models/my_ddpg_lunar.pth
 test: False
 memory_size: 1000000

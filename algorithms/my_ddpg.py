@@ -60,13 +60,14 @@ class DDPG(object):
         self.steps_per_epoch = configs['steps_per_epoch']
         self.n_epochs = configs['n_epochs']
         self.steps_per_epoch = configs['steps_per_epoch']
+        self.polyak = configs['polyak']
 
         # save the "best" policy
         self.best_mean_episode_ret = -1e6
         self.best_policy_state_dict = None
         self.trained_model_path = configs['trained_model_path']
 
-        # set up actor-critic (or policy - q_fucntion)
+        # set up actor-critic (or policy - q_function)
         self.obs_dim = self.env.observation_space.shape[0]
         self.n_acts = self.env.action_space.shape[0]
         output_activation = nn.Tanh
@@ -77,8 +78,8 @@ class DDPG(object):
                         output_activation=output_activation).to(self.device)
         self.target_actor.load_state_dict(self.actor.state_dict())
 
-        self.critic = Critic(self.obs_dim, self.n_acts, 64).to(self.device)
-        self.target_critic = Critic(self.obs_dim, self.n_acts, 64).to(self.device)
+        self.critic = Critic(self.obs_dim, self.n_acts).to(self.device)
+        self.target_critic = Critic(self.obs_dim, self.n_acts).to(self.device)
         self.target_critic.load_state_dict(self.critic.state_dict())
 
         self.replay_memory = self.ReplayMemory(self.memory_size)
@@ -110,10 +111,18 @@ class DDPG(object):
         loss.backward()
         self.optimizer.step()
 
-        # RESET TARGET NETWORK
-        #self.target_actor.load_state_dict(self.actor.state_dict())
-        #self.target_critic.load_state_dict(self.critic.state_dict())
-        # TODO: how to update as ddpg type
+        # UPDATE TARGET NETWORK
+        with torch.no_grad():
+            for actor_p, target_actor_p, critic_p, target_critic_p in zip(
+                    self.actor.parameters(), 
+                    self.target_actor.parameters(),
+                    self.critic.parameters(),
+                    self.target_critic.parameters()
+                    ):
+                target_actor_p.data.mul_(self.polyak)
+                target_actor_p.data.add_((1 - self.polyak) * actor_p.data)
+                target_critic_p.data.mul_(self.polyak)
+                target_critic_p.data.add_((1 - self.polyak) * critic_p.data)
 
 
     def train(self):
@@ -132,7 +141,7 @@ class DDPG(object):
                 high = torch.tensor(self.env.action_space.high).to(self.device)
                 act = torch.max(torch.min(act, high), low)
 
-            # EXCUTE ACTION AND STORE TRANSITION
+            # EXECUTE ACTION AND STORE TRANSITION
             next_obs, reward, done, _ = self.env.step(act.tolist())
             ep_ret += reward
             ep_len += 1
@@ -156,8 +165,7 @@ class DDPG(object):
                 for _ in range(self.update_every):
                     self.optimize()
 
-
-            # TODO: what is need to log
+            # LOGGING
             if global_step % (self.steps_per_epoch * 1) == 0 and global_step > 0:
                 print('Epoch {}, mean episode length: {:.2f}, mean episode return: {:.2f}'.format(
                     global_step//self.steps_per_epoch, np.mean(ep_lens), np.mean(ep_rets)))
