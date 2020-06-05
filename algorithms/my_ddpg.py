@@ -137,6 +137,8 @@ class DDPG(object):
         # TRAINING
         self.actor.train()
         self.critic.train()
+        self.target_actor.eval()
+        self.target_critic.eval()
         ep_rets, ep_lens = [], []
         ep_ret, ep_len, done = 0., 0, False
         obs = torch.from_numpy(self.env.reset()).to(device=self.device, dtype=torch.float).unsqueeze(0)
