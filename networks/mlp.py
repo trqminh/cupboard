@@ -1,6 +1,7 @@
-# take from spinninup openai
+# taken from spinning up openai
 import torch
 import torch.nn as nn
+
 
 def mlp(sizes, activation=nn.ReLU, output_activation=nn.Identity):
     # Build a feedforward neural network.

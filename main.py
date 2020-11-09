@@ -8,10 +8,12 @@ from algorithms import *
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', type=str, default='./configs/ddpg_config.yaml', help='config path')
+    parser.add_argument('--config', type=str, default='./configs/ddpg_config.yaml',
+                        help='config path')
 
     args = parser.parse_args()
     return args
+
 
 def main():
     args = parse_args()
