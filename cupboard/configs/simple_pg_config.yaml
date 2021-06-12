@@ -1,5 +1,5 @@
 algo: SimplePolicyGradient
-env: LunarLander-v2
+env: CartPole-v0
 lr: 1e-2
 hidden_sizes: [32]
 n_epochs: 1000

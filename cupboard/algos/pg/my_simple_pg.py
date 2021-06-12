@@ -7,7 +7,6 @@ import torch.optim as optim
 
 from torch.distributions.categorical import Categorical
 from torch.distributions.normal import Normal
-from networks import *
 import time
 import copy
 import os
@@ -16,14 +15,31 @@ from .policy_base import PolicyBase
 
 
 class SimplePolicyGradient(PolicyBase):
-    def __init__(self, configs, env):
-        super().__init__(configs, env)
+    def __init__(self, 
+                    env,
+                    batch_size,
+                    device,
+                    render,
+                    lr,
+                    n_epochs,
+                    trained_model_path):
+
+        super().__init__(
+                    env, 
+                    batch_size,
+                    device,
+                    render,
+                    lr,
+                    n_epochs,
+                    trained_model_path)
 
     def train(self):
         # optimizer and things
         params = list(self.policy.parameters())
         if self.is_continuous:
             params.append(self.log_std)
+        print(self.policy.parameters())
+        print("Param: ", params)
         optimizer = optim.Adam(params, lr=self.lr)
 
         for epoch in range(self.n_epochs):

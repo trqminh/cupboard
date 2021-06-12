@@ -7,7 +7,7 @@ import torch.optim as optim
 
 from torch.distributions.categorical import Categorical
 from torch.distributions.normal import Normal
-from networks import *
+from .mlp import MLPPolicy
 import time
 import copy
 import os
@@ -15,40 +15,43 @@ import numpy as np
 
 
 class PolicyBase(object):
-    def __init__(self, configs, env):
-        self.env = env
+    def __init__(self, env_fn, 
+                    batch_size,
+                    device,
+                    render,
+                    lr,
+                    n_epochs,
+                    trained_model_path,
+                    policy=MLPPolicy):
+
+        self.env = env_fn
         assert isinstance(self.env.observation_space, Box), \
             "This example only works for envs with continuous state spaces."
-        self.hidden_sizes = configs['hidden_sizes']
-        self.batch_size = configs['batch_size']
-        self.device = configs['device']
-        self.render = configs['render']
-        self.lr = float(configs['lr'])
-        self.n_epochs = configs['n_epochs']
+        self.batch_size = batch_size
+        self.device = device
+        self.render = render
+        self.lr = lr
+        self.n_epochs = n_epochs
         self.log_std = None # for continuous action spaces
         self.is_continuous = isinstance(self.env.action_space, Box)
 
         # save the "best" policy
         self.best_mean_episode_ret = -1e6
         self.best_policy_state_dict = None
-        self.trained_model_path = configs['trained_model_path']
+        self.trained_model_path = trained_model_path
 
         # set up policy
         self.obs_dim = self.env.observation_space.shape[0]
         self.n_acts = None
-        output_activation = None
 
         if self.is_continuous:
             self.n_acts = self.env.action_space.shape[0]
-            output_activation = nn.Tanh
             self.log_std = torch.tensor(-0.5*np.ones(self.n_acts), 
                     dtype=torch.float32, requires_grad=True, device=self.device)
         else:
             self.n_acts = self.env.action_space.n
-            output_activation = nn.Identity
 
-        self.policy = mlp(sizes = [self.obs_dim] + self.hidden_sizes + [self.n_acts], 
-                        output_activation=output_activation).to(self.device)
+        self.policy = policy(obs_dim=self.obs_dim, act_dim=self.n_acts).to(self.device)
 
     @staticmethod
     def reward_to_go(rews):
@@ -72,6 +75,7 @@ class PolicyBase(object):
             logit = self.policy(torch.from_numpy(obs).to(dtype=torch.float, device=self.device))
 
             if self.is_continuous:
+                logit = nn.Tanh()(logit)
                 std = torch.exp(self.log_std)
                 distribution = Normal(logit, std) # logit as mean
                 act = distribution.sample()
