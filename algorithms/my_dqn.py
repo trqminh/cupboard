@@ -35,8 +35,11 @@ class DQN(object):
         self.render = configs['render']
         self.gamma = configs['discount_factor']
         self.target_update_step = configs['target_update_step']
-        self.ep_thresh = configs['ep_thresh']
+        self.epsilon_decay = configs['epsilon_decay']
         self.replay_mem_size = configs['replay_mem_size']
+        self.learning_starts = configs['learning_starts']
+        self.learning_freq = configs['learning_freq']
+        self.epsilon = 1.
 
     class ReplayMemory(object):
         def __init__(self, capacity):
@@ -77,6 +80,8 @@ class DQN(object):
         ep_rets = []
         ep_lens = []
         global_step = 0
+        debug = False
+        intense, prosaic = 0, 0
 
         # TRAINING
         for ep in range(self.n_episodes + 1):
@@ -87,13 +92,14 @@ class DQN(object):
             for t in count():
                 global_step += 1
                 # SELECT ACTION WITH EPSILON GREEDY
-                epsilon = random.uniform(0,1)
-                if epsilon < self.ep_thresh:
-                    act = torch.tensor([[random.randint(0, n_acts - 1)]], 
-                            device=self.device, dtype=torch.long)
-                else:
+                if self.epsilon < random.uniform(0,1):
+                    prosaic += 1
                     with torch.no_grad():
                         act = Q_net(obs).max(1)[1].view(1,1)
+                else:
+                    intense += 1
+                    act = torch.tensor([[self.env.action_space.sample()]], 
+                            device=self.device, dtype=torch.long)
 
                 # EXCUTE ACTION AND STORE TRANSITION
                 next_obs, reward, done, _ = self.env.step(act.item())
@@ -108,8 +114,16 @@ class DQN(object):
                 obs = next_obs
 
                 # OPTIMIZATION
+                #if len(replay_mem) < self.batch_size or \
+                #        global_step < self.learning_starts:
+                #    continue
                 if len(replay_mem) < self.batch_size:
                     continue
+
+                if not debug:
+                    print('global_step ', global_step)
+                    print('episode ', ep)
+                    debug = True
 
                 transitions = replay_mem.sample(self.batch_size)
                 batch = Transition(*zip(*transitions))
@@ -125,6 +139,8 @@ class DQN(object):
                 predict_Q = torch.gather(Q_net(batch_state), 1, batch_act)
 
                 loss = criterion(predict_Q, y.unsqueeze(1))
+                #print(loss)
+                loss = torch.clamp(loss, -1, 1)
                 optimizer.zero_grad()
                 loss.backward()
                 for param in Q_net.parameters():
@@ -136,11 +152,15 @@ class DQN(object):
                     Q_target_net.load_state_dict(Q_net.state_dict())
 
                 if done:
+                    self.epsilon = max(self.epsilon * self.epsilon_decay, 0.)
                     ep_rets.append(ep_ret)
                     ep_lens.append(t + 1)
                     break
 
             if ep % 100 == 0:
+                print(len(ep_rets))
+                print(global_step)
+                print(len(ep_lens))
                 print('Episode {}, loss: {:.2f}, mean episode length: {:.2f}, current 100 ep mean episode return: {:.2f}'\
                         .format(ep, loss, np.mean(ep_lens), np.mean(ep_rets)))
                 ep_rets = []
