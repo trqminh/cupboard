@@ -37,9 +37,8 @@ class SimplePolicyGradient(PolicyBase):
         # optimizer and things
         params = list(self.policy.parameters())
         if self.is_continuous:
-            params.append(self.log_std)
-        print(self.policy.parameters())
-        print("Param: ", params)
+            params.append(self.log_std) 
+
         optimizer = optim.Adam(params, lr=self.lr)
 
         for epoch in range(self.n_epochs):

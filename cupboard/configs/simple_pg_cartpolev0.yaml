@@ -2,9 +2,9 @@ algo: SimplePolicyGradient
 env: CartPole-v0
 lr: 1e-2
 hidden_sizes: [32]
-n_epochs: 1000
+n_epochs: 100
 batch_size: 5000
 render: False
 device: cuda:0
-trained_model_path: ./algorithms/trained_models/my_simple_pg.pth
-test: False
+trained_model_path: ./cupboard/trained_models/simple_pg_cartpolev0.pth
+test: True

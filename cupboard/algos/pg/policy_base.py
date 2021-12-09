@@ -126,28 +126,27 @@ class PolicyBase(object):
         # In this perform function, I skip the learned log_std, just perform by its mean.
         if os.path.exists(self.trained_model_path):
             self.policy.load_state_dict(torch.load(self.trained_model_path, map_location=self.device))
-            obs, done, ep_rews = self.env.reset(), False, []
-
-            while True:
-                self.env.render()
-                logit = self.policy(torch.from_numpy(obs).to(dtype=torch.float, device=self.device))
-
-                if self.is_continuous:
-                    std = torch.exp(self.log_std)
-                    distribution = Normal(logit, std) # logit as mean
-                    act = distribution.sample()
-                else:
-                    distribution = Categorical(F.softmax(logit, dim=0))
-                    act = distribution.sample()
-
-                obs, reward, done, info = self.env.step(act.tolist())
-                ep_rews.append(reward)
-
-                if done:
-                    ep_ret, ep_len = sum(ep_rews), len(ep_rews)
-                    print('Episode return: {:.2f}, episode len: {:.2f}'.format(ep_ret, ep_len))
-                    obs, done, ep_rews = self.env.reset(), False, []
-
         else:
-            print('Trained model does not exist')
+            print('Trained model does not exist, performed with random initialization')
+        obs, done, ep_rews = self.env.reset(), False, []
+
+        while True:
+            self.env.render()
+            logit = self.policy(torch.from_numpy(obs).to(dtype=torch.float, device=self.device))
+
+            if self.is_continuous:
+                std = torch.exp(self.log_std)
+                distribution = Normal(logit, std) # logit as mean
+                act = distribution.sample()
+            else:
+                distribution = Categorical(F.softmax(logit, dim=0))
+                act = distribution.sample()
+
+            obs, reward, done, info = self.env.step(act.tolist())
+            ep_rews.append(reward)
+
+            if done:
+                ep_ret, ep_len = sum(ep_rews), len(ep_rews)
+                print('Episode return: {:.2f}, episode len: {:.2f}'.format(ep_ret, ep_len))
+                obs, done, ep_rews = self.env.reset(), False, [] 
 

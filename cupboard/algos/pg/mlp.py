@@ -9,8 +9,9 @@ class MLPPolicy(nn.Module):
         self.obs_dim = obs_dim
         self.act_dim = act_dim
         self.layer_sizes = layer_sizes
+        self.fc = self.mlp(sizes=[self.obs_dim] + self.layer_sizes + [self.act_dim])
 
-
+    @staticmethod
     def mlp(sizes, activation=nn.ReLU, output_activation=nn.Identity):
         # Build a feedforward neural network.
         layers = []
@@ -20,6 +21,6 @@ class MLPPolicy(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def forwad(self, x):
-        return mlp(sizes=[obs_dim] + self.layer_sizes + [act_dim])(x)
+    def forward(self, x):
+        return self.fc(x)
 
