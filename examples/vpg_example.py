@@ -12,7 +12,7 @@ from cupboard.algos.pg.my_vpg import VanillaPolicyGradient
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', type=str, default='./cupboard/configs/vpg_lander.yaml',
+    parser.add_argument('--config', type=str, default='./cupboard/configs/vpg_lander_cont.yaml',
                         help='config path')
 
     args = parser.parse_args()

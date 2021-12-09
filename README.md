@@ -1,8 +1,8 @@
 # RLPlayground
 ## To Run
-for running a single algorithm on a particular environment. (Just vpg & simple_pg are available to run, for both kind of environments: discrete and continuous)
 ```
-python main.py --config configs/vpg_cont_config.yaml
+python simple_pg_example.py --config configs/simple_pg_cartpolev0.yaml
 ```
-## Experiments
-Working on comparison among algorithms and their configurations.
+Good working algos+env:
+- Simple policy gradient on Cartpole-v0 (discrete actions) [[config]()|[pretrained]()]
+- Vanilla policy gradient on LunarLander-v2 (discrete actions) [[config]()|[pretrained]()]
