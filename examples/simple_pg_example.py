@@ -35,7 +35,8 @@ def main():
                                  configs['render'],
                                  float(configs['lr']),
                                  configs['n_epochs'],
-                                 configs['trained_model_path'])
+                                 configs['trained_model_path'],
+                                 configs['hidden_sizes'])
 
     print('Agent: {}, Env: {}'.format(type(agent).__name__, env.unwrapped.spec.id))
 

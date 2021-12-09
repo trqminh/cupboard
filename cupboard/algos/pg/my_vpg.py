@@ -7,18 +7,32 @@ import torch.optim as optim
 
 from torch.distributions.categorical import Categorical
 from torch.distributions.normal import Normal
-from networks import *
-import time
-import copy
-import os
-import numpy as np
 from .policy_base import PolicyBase
+from .mlp import MLPPolicy
 
 
 class VanillaPolicyGradient(PolicyBase):
-    def __init__(self, configs, env):
-        super().__init__(configs, env)
-        self.baseline_model = mlp([self.obs_dim] + self.hidden_sizes + [1]).to(self.device)
+    def __init__(self, 
+                    env,
+                    batch_size,
+                    device,
+                    render,
+                    lr,
+                    n_epochs,
+                    trained_model_path,
+                    mlp_hidden_sizes):
+
+        super().__init__(
+                    env, 
+                    batch_size,
+                    device,
+                    render,
+                    lr,
+                    n_epochs,
+                    trained_model_path,
+                    mlp_hidden_sizes)
+        self.baseline_model = MLPPolicy(obs_dim=self.obs_dim, act_dim=1, layer_sizes=mlp_hidden_sizes).to(self.device)
+        print("Baseline model: ", self.baseline_model)
 
     def train(self):
         # optimizer and things

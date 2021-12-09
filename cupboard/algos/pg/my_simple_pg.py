@@ -22,7 +22,8 @@ class SimplePolicyGradient(PolicyBase):
                     render,
                     lr,
                     n_epochs,
-                    trained_model_path):
+                    trained_model_path,
+                    mlp_hidden_sizes):
 
         super().__init__(
                     env, 
@@ -31,7 +32,8 @@ class SimplePolicyGradient(PolicyBase):
                     render,
                     lr,
                     n_epochs,
-                    trained_model_path)
+                    trained_model_path,
+                    mlp_hidden_sizes)
 
     def train(self):
         # optimizer and things

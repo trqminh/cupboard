@@ -22,6 +22,7 @@ class PolicyBase(object):
                     lr,
                     n_epochs,
                     trained_model_path,
+                    mlp_hidden_sizes=[32, 32],
                     policy=MLPPolicy):
 
         self.env = env_fn
@@ -51,7 +52,8 @@ class PolicyBase(object):
         else:
             self.n_acts = self.env.action_space.n
 
-        self.policy = policy(obs_dim=self.obs_dim, act_dim=self.n_acts).to(self.device)
+        self.policy = policy(obs_dim=self.obs_dim, act_dim=self.n_acts, layer_sizes=mlp_hidden_sizes).to(self.device)
+        print('Policy architecture: ', self.policy)
 
     @staticmethod
     def reward_to_go(rews):

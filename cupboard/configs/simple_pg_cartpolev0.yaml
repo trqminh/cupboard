@@ -1,7 +1,7 @@
 algo: SimplePolicyGradient
 env: CartPole-v0
 lr: 1e-2
-hidden_sizes: [32]
+hidden_sizes: [128, 128]
 n_epochs: 100
 batch_size: 5000
 render: False

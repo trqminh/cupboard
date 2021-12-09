@@ -1,10 +1,10 @@
 algo: VanillaPolicyGradient
 env: LunarLanderContinuous-v2
 lr: 1e-2
-hidden_sizes: [32]
+hidden_sizes: [128, 128]
 n_epochs: 1000
 batch_size: 5000
 render: False
 device: cuda:0
-trained_model_path: ./algorithms/trained_models/my_vpg_cont.pth
+trained_model_path: ./cupboard/trained_models/my_vpg_lander_cont.pth
 test: False

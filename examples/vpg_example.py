@@ -7,12 +7,12 @@ import gym
 import argparse
 import yaml
 import torch
-from cupboard.algos.pg.my_simple_pg import SimplePolicyGradient
+from cupboard.algos.pg.my_vpg import VanillaPolicyGradient
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', type=str, default='./cupboard/configs/simple_pg_cartpolev0.yaml',
+    parser.add_argument('--config', type=str, default='./cupboard/configs/vpg_lander.yaml',
                         help='config path')
 
     args = parser.parse_args()
@@ -29,13 +29,14 @@ def main():
     print(configs)
 
     env = gym.make(configs['env'])
-    agent = SimplePolicyGradient(env, 
-                                 configs['batch_size'],
-                                 configs['device'],
-                                 configs['render'],
-                                 float(configs['lr']),
-                                 configs['n_epochs'],
-                                 configs['trained_model_path'])
+    agent = VanillaPolicyGradient(env, 
+                                  configs['batch_size'],
+                                  configs['device'],
+                                  configs['render'],
+                                  float(configs['lr']),
+                                  configs['n_epochs'],
+                                  configs['trained_model_path'],
+                                  configs['hidden_sizes'])
 
     print('Agent: {}, Env: {}'.format(type(agent).__name__, env.unwrapped.spec.id))
 
