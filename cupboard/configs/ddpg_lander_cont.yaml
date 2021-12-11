@@ -13,7 +13,7 @@ max_episode_len: 1000
 steps_per_epoch: 4000
 n_epochs: 100
 polyak: 0.995
-trained_model_path: ./algorithms/trained_models/my_ddpg_lunar.pth
+trained_model_path: ./cupboard/trained_models/my_ddpg_lunar.pth
 test: False
 memory_size: 1000000
 start_steps: 100000
